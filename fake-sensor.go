@@ -6,10 +6,12 @@ import (
 	"math"
 
 	"github.com/golang/geo/r3"
+	"go.viam.com/rdk/components/arm"
+	"go.viam.com/rdk/components/gantry"
 	"go.viam.com/rdk/components/sensor"
 	"go.viam.com/rdk/logging"
 	"go.viam.com/rdk/resource"
-	"go.viam.com/rdk/spatialmath"
+	"go.viam.com/rdk/robot/framesystem"
 )
 
 var (
@@ -25,6 +27,8 @@ func init() {
 }
 
 type SensorConfig struct {
+	Arm    string `json:"arm"`
+	Gantry string `json:"gantry"`
 }
 
 // Validate ensures all parts of the config are valid and important fields exist.
@@ -38,7 +42,13 @@ type SensorConfig struct {
 // (for example, "components.0"). You can use it in error messages
 // to indicate which resource has a problem.
 func (cfg *SensorConfig) Validate(path string) ([]string, []string, error) {
-	return nil, nil, nil
+	if cfg.Arm == "" {
+		return nil, nil, fmt.Errorf("missing 'arm' field in %s", path)
+	}
+	if cfg.Gantry == "" {
+		return nil, nil, fmt.Errorf("missing 'gantry' field in %s", path)
+	}
+	return []string{cfg.Arm, cfg.Gantry}, nil, nil
 }
 
 // calibrationFakeSensor simulates an ultrasonic sensor pointing at a virtual monitor
@@ -52,6 +62,10 @@ type calibrationFakeSensor struct {
 
 	cancelCtx  context.Context
 	cancelFunc func()
+
+	arm    arm.Arm
+	gantry gantry.Gantry
+	fs     framesystem.RobotFrameSystem
 
 	// Virtual monitor definition
 	monitorCenter   r3.Vector // Center point of monitor in world coordinates
@@ -72,6 +86,7 @@ func newCalibrationFakeSensor(ctx context.Context, deps resource.Dependencies, r
 }
 
 func NewFakeSensor(_ context.Context, deps resource.Dependencies, name resource.Name, conf *SensorConfig, logger logging.Logger) (sensor.Sensor, error) {
+	var err error
 	cancelCtx, cancelFunc := context.WithCancel(context.Background())
 
 	s := &calibrationFakeSensor{
@@ -119,6 +134,21 @@ func NewFakeSensor(_ context.Context, deps resource.Dependencies, name resource.
 		monitorUpVector: r3.Vector{X: 0, Y: 0, Z: 1},
 	}
 
+	s.arm, err = arm.FromProvider(deps, conf.Arm)
+	if err != nil {
+		return nil, err
+	}
+
+	s.gantry, err = gantry.FromProvider(deps, conf.Gantry)
+	if err != nil {
+		return nil, err
+	}
+
+	s.fs, err = framesystem.FromDependencies(deps)
+	if err != nil {
+		return nil, err
+	}
+
 	return s, nil
 }
 
@@ -129,33 +159,14 @@ func (s *calibrationFakeSensor) Name() resource.Name {
 // Readings implements the sensor.Sensor interface
 // Returns a map with "distance" key containing the ultrasonic reading in meters
 func (s *calibrationFakeSensor) Readings(ctx context.Context, extra map[string]interface{}) (map[string]interface{}, error) {
-	// Get current sensor position from extra parameters
-	x, ok := extra["x"].(float64)
-	y, ok2 := extra["y"].(float64)
-	z, ok3 := extra["z"].(float64)
-	ox, ok4 := extra["ox"].(float64)
-	oy, ok5 := extra["oy"].(float64)
-	oz, ok6 := extra["oz"].(float64)
-	th, ok7 := extra["th"].(float64)
-
-	var pose spatialmath.Pose
-	if ok && ok2 && ok3 && ok4 && ok5 && ok6 && ok7 {
-		pose = spatialmath.NewPose(
-			r3.Vector{
-				X: x,
-				Y: y,
-				Z: z,
-			},
-			&spatialmath.OrientationVector{
-				OX:    ox,
-				OY:    oy,
-				OZ:    oz,
-				Theta: th,
-			},
-		)
-
-		s.logger.Debugf("sensor pose in world frame: %+v", pose)
+	// Get sensor pose in world coordinates using the frame system
+	sensorPoseInFrame, err := s.fs.GetPose(ctx, s.name.Name, "world", nil, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get sensor pose: %w", err)
 	}
+
+	pose := sensorPoseInFrame.Pose()
+	s.logger.Debugf("sensor pose in world frame: %+v", pose)
 
 	sensorPos := pose.Point()
 	orientation := pose.Orientation()

@@ -8,7 +8,7 @@
     {
       "api": "rdk:component:sensor",
       "model": "jalen-monitor-cleaning:calibration:fake-sensor",
-      "short_description": "Fully configurable fake ultrasonic sensor that simulates distance readings for a monitor",
+      "short_description": "Simulated ultrasonic sensor that automatically calculates distance to a virtual monitor using frame system",
       "markdown_link": "README.md#model-jalen-monitor-cleaningcalibrationfake-sensor"
     },
     {

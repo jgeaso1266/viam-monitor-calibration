@@ -10,15 +10,29 @@ The virtual monitor has a compound rotation (15° around X-axis, 10° around Y-a
 
 ### Configuration
 
-This model requires no configuration attributes.
+This model requires the following configuration attributes:
+
+#### Attributes
+
+The following attributes are available for this model:
+
+| Name     | Type   | Inclusion | Description                |
+|----------|--------|-----------|----------------------------|
+| `arm`    | string | Required  | Name of the arm component |
+| `gantry` | string | Required  | Name of the gantry component |
+
+#### Example Configuration
+
+```json
+{
+  "arm": "my-arm",
+  "gantry": "my-gantry"
+}
+```
 
 ### Readings
 
-The sensor returns distance readings in **meters** through the standard `Readings()` method. It expects pose information in the `extra` parameters to calculate the distance to the virtual monitor.
-
-**Required extra parameters:**
-- `x`, `y`, `z`: Position coordinates (mm)
-- `ox`, `oy`, `oz`, `th`: Orientation vector and theta
+The sensor returns distance readings in **meters** through the standard `Readings()` method. It automatically calculates the sensor pose using the frame system based on the current arm and gantry positions
 
 **Returns:**
 ```json
