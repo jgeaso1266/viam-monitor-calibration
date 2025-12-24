@@ -70,7 +70,7 @@ The sensor returns distance readings in **centimeters** through the standard `Re
 
 The sensor simulates realistic behavior:
 - Returns actual distance (in centimeters) when the ray hits the virtual monitor surface
-- Returns 40.0 cm (max range, 400mm) when the ray misses the monitor
+- Returns 400.0 cm (max range, 4000mm) when the ray misses the monitor
 - Adds ±2mm noise to simulate real sensor readings
 
 ## Model jalen-monitor-cleaning:calibration:monitor-calibration

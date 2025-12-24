@@ -197,7 +197,7 @@ func (s *calibrationFakeSensor) Readings(ctx context.Context, extra map[string]i
 			distanceMM, sensorPos.X, sensorPos.Y, sensorPos.Z)
 	} else {
 		// No hit - return a large distance (out of range)
-		distanceMM = 400.0 // Ultrasonic sensor max range in mm
+		distanceMM = 4000.0 // Ultrasonic sensor max range in mm
 		s.logger.Debugf("Fake sensor: MISS, returning max distance (pos: %.1f,%.1f,%.1f)",
 			sensorPos.X, sensorPos.Y, sensorPos.Z)
 	}

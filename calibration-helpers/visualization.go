@@ -1,6 +1,7 @@
 package calibrationhelpers
 
 import (
+	"encoding/json"
 	"math"
 
 	"github.com/golang/geo/r3"
@@ -103,5 +104,7 @@ func GenerateVisualizationConfig(logger logging.Logger, result CalibrationResult
 			},
 		},
 	}
+	jsonData, _ := json.MarshalIndent(config, "", "  ")
+	logger.Infof("Generated monitor visualization config:\n%+v", string(jsonData))
 	return config
 }
